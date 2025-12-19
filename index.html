@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEB je even voor mij?</title>
+    <style>
+        :root {
+            --brand-orange: #E85E34;
+            --brand-black: #000000;
+            --brand-white: #FFFFFF;
+            --brand-gray: #f4f4f4;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--brand-black);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--brand-white);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        /* Start Scherm */
+        #start-screen, #game-screen, #end-screen {
+            display: none;
+        }
+
+        #start-screen.active, #game-screen.active, #end-screen.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .logo-placeholder {
+            font-weight: 900;
+            font-size: 3rem;
+            color: var(--brand-white);
+            margin-bottom: 20px;
+        }
+
+        .logo-placeholder span {
+            color: var(--brand-orange);
+        }
+
+        /* De Kaart */
+        .card {
+            background-color: var(--brand-white);
+            color: var(--brand-black);
+            width: 100%;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            min-height: 300px;
+        }
+
+        .card-sidebar {
+            background-color: var(--brand-orange);
+            width: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .card-sidebar-text {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            font-weight: bold;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            white-space: nowrap;
+        }
+
+        .card-content {
+            flex: 1;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: left;
+        }
+
+        .word-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .word-list li {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .word-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* Timer */
+        .timer-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            margin: 20px 0;
+        }
+
+        .timer-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 5px solid var(--brand-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--brand-white);
+            background-color: #333;
+        }
+
+        .timer-circle.warning {
+            border-color: var(--brand-orange);
+            color: var(--brand-orange);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Knoppen */
+        button {
+            background-color: var(--brand-orange);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s, background-color 0.2s;
+            width: 80%;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button.secondary {
+            background-color: transparent;
+            border: 2px solid var(--brand-white);
+            margin-top: 10px;
+        }
+
+        .rules {
+            background: #222;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: left;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            max-width: 90%;
+        }
+
+        .rules ul {
+            padding-left: 20px;
+        }
+
+        /* Audio feedback visual */
+        .time-up-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(232, 94, 52, 0.9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            z-index: 10;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div id="start-screen" class="active">
+            <div class="logo-placeholder">W<span>E</span>B</div>
+            <h1>Je even voor mij?</h1>
+            <p>De digitale versie van het bordspel.</p>
+            
+            <button onclick="startGame()">Start Spel</button>
+            <button class="secondary" onclick="toggleRules()">Spelregels</button>
+
+            <div id="rules-block" class="rules" style="display:none;">
+                <strong>Regels:</strong>
+                <ul>
+                    <li>Je krijgt 30 seconden om alle 5 begrippen te omschrijven.</li>
+                    <li>Je teamgenoten moeten raden wat er staat.</li>
+                    <li>Je mag NIET: de naam (of delen ervan) noemen.</li>
+                    <li>Je mag NIET: 'klinkt als' of 'rijmt op' gebruiken.</li>
+                    <li>Je mag NIET: vertalen of wijzen.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="game-screen">
+            <div class="timer-container">
+                <div id="timer-display" class="timer-circle">30</div>
+            </div>
+
+            <div class="card" id="game-card">
+                <div class="time-up-overlay" id="time-up-msg">STOP!</div>
+                <div class="card-sidebar">
+                    <div class="card-sidebar-text">WEB je even voor mij?</div>
+                </div>
+                <div class="card-content">
+                    <ul class="word-list" id="word-list">
+                        </ul>
+                </div>
+            </div>
+
+            <button id="next-btn" onclick="nextCard()">Volgende Kaart</button>
+        </div>
+
+        <div id="end-screen">
+            <div class="logo-placeholder"><span>OP</span></div>
+            <h1>Alle kaarten zijn geweest!</h1>
+            <p>Wil je nog een keer spelen?</p>
+            <button onclick="location.reload()">Opnieuw Spelen</button>
+        </div>
+
+    </div>
+
+    <script>
+        // DATA: Alle kaarten uit de nieuwe afbeelding
+        const allCards = [
+            ["Peter", "Jira", "Tostifile", "Figma", "Wij zijn web"],
+            ["Pascal", "Ariër", "In die Ecke schäften", "Wij zijn WEB", "SLA"],
+            ["Remco", "Schonebille", "Micksels", "Combell", "Exabo"],
+            ["Bart", "Ewok", "Kickoff", "Brödje", "Demand generation"],
+            ["Marcel", "KB", "Good guys, great work", "Slack", "Confluence"],
+            ["Gita", "Marlèneke", "Aufschlicks", "Booosters", "Contentrijen"],
+            ["Sage", "Marije", "Waifu", "Henoch", "CSS"],
+            ["Jan", "Remblok", "Curling", "404", "Hegbal"],
+            ["Mark", "Ninjan", "TOPP", "Exapps", "Bootjebal"],
+            ["Esmee", "Taalkapitein", "Brainstorm", "DO-IT Automatisering", "Issue"],
+            ["Kevin", "Witte Tjaboo", "Bobgemaakt", "Doit Online Media", "Maud"],
+            ["Conchita", "Stuurcijfers", "Offertedesign", "Dynamic Logistics", "Kabeltje Prik-Prak"],
+            ["Tom", "Japie", "Cockrings", "Ikeja", "Exa"],
+            ["Marleen", "Siempie", "Groeiteam", "Spandoekman", "BHV"],
+            ["Marc", "Plakkans", "HTML", "BIG FAT Internet", "Chattie"],
+            ["Suze", "Kevla", "Pijlers", "Warempel", "CMS"],
+            ["Jaap", "Jannes", "Bitwarden", "Mach4Metal", "Micro-animaties"],
+            ["Sander", "Pally", "Stoelmassage", "WordPress", "Intranet"],
+            ["Koen", "Leanderthaler", "Kerstactie", "LinkedIn", "Tim"],
+            ["OLLIE", "Nora", "Simon", "ICARUS", "Leander"]
+        ];
+
+        let gameDeck = [];
+        let currentCardIndex = 0;
+        let timerInterval;
+        let timeLeft = 30;
+        let audioContext = null;
+
+        // Shuffle functie (Fisher-Yates)
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            // While there remain elements to shuffle.
+            while (currentIndex != 0) {
+                // Pick a remaining element.
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                // And swap it with the current element.
+                [array[currentIndex], array[randomIndex]] = [
+                    array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function toggleRules() {
+            const rules = document.getElementById('rules-block');
+            rules.style.display = rules.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function startGame() {
+            // Kopieer en schud de kaarten
+            gameDeck = shuffle([...allCards]);
+            currentCardIndex = 0;
+
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+            
+            loadCard();
+        }
+
+        function loadCard() {
+            // Reset UI
+            document.getElementById('time-up-msg').style.display = 'none';
+            document.getElementById('timer-display').classList.remove('warning');
+            document.getElementById('game-card').style.opacity = '1';
+            
+            // Check of spel klaar is
+            if (currentCardIndex >= gameDeck.length) {
+                endGame();
+                return;
+            }
+
+            // Vul woorden
+            const wordList = document.getElementById('word-list');
+            wordList.innerHTML = '';
+            const currentWords = gameDeck[currentCardIndex];
+            
+            currentWords.forEach(word => {
+                let li = document.createElement('li');
+                li.innerText = word;
+                wordList.appendChild(li);
+            });
+
+            // Start Timer
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 30;
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timeIsUp();
+                } else if (timeLeft <= 5) {
+                    // Visuele waarschuwing
+                    document.getElementById('timer-display').classList.add('warning');
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            document.getElementById('timer-display').innerText = timeLeft;
+        }
+
+        function timeIsUp() {
+            // Toon overlay
+            document.getElementById('time-up-msg').style.display = 'flex';
+            
+            // Tril effect op mobiel
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200]);
+            }
+            
+            // Korte piep (optioneel, werkt alleen na interactie)
+            playBeep();
+        }
+
+        function nextCard() {
+            currentCardIndex++;
+            loadCard();
+        }
+
+        function endGame() {
+            document.getElementById('game-screen').classList.remove('active');
+            document.getElementById('end-screen').classList.add('active');
+        }
+
+        // Simpele piep functie voor wanneer tijd om is
+        function playBeep() {
+            try {
+                if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'square';
+                oscillator.frequency.value = 400; // Hz
+                gainNode.gain.value = 0.1;
+                
+                oscillator.start();
+                setTimeout(() => oscillator.stop(), 500);
+            } catch (e) {
+                console.log("Audio niet ondersteund of geblokkeerd");
+            }
+        }
+    </script>
+</body>
+</html>
